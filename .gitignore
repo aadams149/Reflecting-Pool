@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+
+# OCR Output
+ocr_output/
+*.ocr.txt
+
+# RAG Data
+vector_db/
+rag/vector_db/
+rag/*.db
+*.sqlite
+*.sqlite3
+
+# Dashboard cache
+dashboard/.streamlit/
+.streamlit/
+
+# Journal data (keep your personal journals private!)
+journal_photos/
+journal_entries/
+my_journals/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+/ocr/ocr_output/text
+/ocr/ocr_output/metadata
+/rag/vector_db
+/rag/vector_db/44a9e841-31eb-4e6f-a285-c3ca8770af71

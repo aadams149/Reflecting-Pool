@@ -1,0 +1,72 @@
+# Personal Journal Processing System
+# Combined requirements for all modules
+# Install with: pip install -r requirements.txt
+
+# ============================================================================
+# OCR Module Dependencies
+# ============================================================================
+pytesseract>=0.3.10         # Python wrapper for Tesseract OCR
+opencv-python>=4.8.0        # Image preprocessing
+Pillow>=10.0.0              # Image loading and manipulation
+pillow-heif>=0.13.0         # HEIC format support (iPhone photos)
+numpy>=1.24.0               # Numerical arrays for image processing
+watchdog>=3.0.0             # Folder monitoring for auto-processing
+
+# ============================================================================
+# RAG Module Dependencies
+# ============================================================================
+sentence-transformers>=2.2.0  # Semantic embeddings (runs locally)
+chromadb>=0.4.0               # Vector database (embedded, no server)
+
+# ============================================================================
+# Dashboard Module Dependencies
+# ============================================================================
+streamlit>=1.28.0           # Web app framework
+plotly>=5.17.0              # Interactive visualizations
+pandas>=2.0.0               # Data manipulation and analysis
+vaderSentiment>=3.3.2       # Rule-based sentiment analysis
+
+# ============================================================================
+# Shared Dependencies
+# ============================================================================
+requests>=2.31.0            # HTTP requests (used by RAG + Dashboard)
+
+# ============================================================================
+# Optional Dependencies
+# ============================================================================
+# Uncomment these if you want additional features:
+
+# Better OCR for handwriting (larger download, slower but more accurate)
+# paddleocr>=2.7.0
+# paddlepaddle>=2.5.0         # CPU version (2GB download)
+# paddlepaddle-gpu>=2.5.0     # GPU version (if you have CUDA)
+
+# Better performance for RAG embeddings (PyTorch)
+# torch>=2.0.0                # CPU version
+# For GPU: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# Alternative sentiment analysis (better than VADER but requires training data)
+# textblob>=0.17.1
+
+# ============================================================================
+# Installation Notes
+# ============================================================================
+# 
+# Basic installation (recommended):
+#   pip install -r requirements.txt
+#
+# On some systems you may need:
+#   pip install -r requirements.txt --break-system-packages
+#
+# Tesseract OCR must be installed separately:
+#   Windows: https://github.com/UB-Mannheim/tesseract/wiki
+#   macOS:   brew install tesseract
+#   Linux:   sudo apt-get install tesseract-ocr
+#
+# For LLM features (optional):
+#   Install Ollama from https://ollama.ai
+#   Then: ollama pull llama3.3
+#
+# Total download size (without optional deps): ~500MB
+# With PaddleOCR: ~2.5GB
+# With PyTorch: ~3GB
