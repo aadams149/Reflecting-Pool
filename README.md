@@ -120,17 +120,10 @@ journal-project/
 ### One-Time Setup
 
 1. **Install Python dependencies:**
+
+This will install all needed dependencies for all three subcomponents.
+
    ```cmd
-   # OCR
-   cd ocr
-   pip install -r requirements.txt
-
-   # RAG
-   cd ..\rag
-   pip install -r requirements.txt
-
-   # Dashboard
-   cd ..\dashboard
    pip install -r requirements.txt
    ```
 
