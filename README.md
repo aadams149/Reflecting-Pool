@@ -12,6 +12,7 @@ Transform your handwritten journals into a searchable, analyzable digital archiv
 2. **🔍 Search** — Semantic search with AI-powered Q&A over all your entries
 3. **📊 Analyze** — Interactive dashboards with sentiment analysis, writing patterns, and music mentions
 4. **🎵 Discover** — Automatically detect and link songs mentioned in your journals
+5. **🎨 Customize** — Style the dashboard to your taste with live CSS theming
 
 Everything runs **100% locally** on your Windows PC. No cloud services. Complete privacy.
 
@@ -71,15 +72,34 @@ journal-project/
 - **AI-powered Q&A**: Ask questions, get answers from your journals
 - **Date range queries**: Filter by specific time periods
 - **Interactive CLI**: Search from the command line
+- **Sidebar search**: Run RAG queries directly from the dashboard sidebar without leaving the analytics view
 - **Database management**: List, delete, or clear entries
 
 ### Analytics Dashboard
+- **At-a-glance metrics**: Total entries, total words, average words per entry, and days covered are pinned above all tabs so they're always visible
+- **Section help tooltips**: Every chart and section has a collapsible ℹ️ expander explaining exactly what it shows and how to read it
 - **Sentiment analysis**: Track emotional tone over time (VADER)
 - **Writing patterns**: Consistency heatmaps, word count trends
 - **Most common words**: See your most-used vocabulary
 - **Streak tracking**: Current and longest journaling streaks
-- **Music detection**: Automatically find and link songs mentioned
 - **Interactive charts**: Hover, zoom, filter by date range
+
+### Music Tab
+- **Automatic detection**: Finds songs and artists mentioned anywhere in your entries
+- **iTunes artwork**: Each detected song is displayed as a card with album art pulled from the iTunes API
+- **Rich metadata**: Shows song title, artist, album, duration, and genre
+- **Mention stats**: Displays how many times each song appears and when it was last mentioned
+- **Preview & links**: Links directly to Apple Music previews and iTunes pages
+- **Music extraction module**: Powered by `music_extraction.py`, a standalone module that can be used independently of the dashboard
+
+### Appearance Tab *(new)*
+- **Live CSS theming**: Instantly restyle the entire dashboard without touching any code
+- **Typography controls**: Choose separate fonts for body text and headings (Georgia, Garamond, Palatino, and more), set base font size, and adjust line height
+- **Color pickers**: Independently control body text, headings, links/accents, metric values, page background, and sidebar background
+- **Spacing & layout**: Sliders for content padding, section gaps, metric label size, and card border radius
+- **Quick presets**: Four one-click themes — 🌙 Dark Ink, 📜 Parchment, 🧊 Minimal, and 🌿 Sage — to jump-start your look
+- **Live preview**: A sample journal entry renders in real time as you adjust settings
+- **CSS export**: Copy a ready-to-use CSS snippet to save or share your custom theme
 
 ### Chat Interface
 - **Conversational search**: Ask questions naturally
@@ -104,11 +124,11 @@ journal-project/
    # OCR
    cd ocr
    pip install -r requirements.txt
-   
+
    # RAG
    cd ..\rag
    pip install -r requirements.txt
-   
+
    # Dashboard
    cd ..\dashboard
    pip install -r requirements.txt
@@ -169,7 +189,7 @@ Dashboard (Analytics):
 
 ---
 
-## 🔐 Privacy & Security
+## 🔒 Privacy & Security
 
 - ✅ **100% self-hosted** — all processing happens on your PC
 - ✅ **No cloud services** — no data leaves your machine
@@ -177,7 +197,7 @@ Dashboard (Analytics):
 - ✅ **Works offline** — after initial setup
 - ✅ **Your data, your control** — everything stored locally
 
-**Music feature note**: Only song/artist names (e.g., "Everlong Foo Fighters") are sent to the iTunes API for metadata lookup. No journal text or context is shared.
+**Music feature note**: Only song/artist names (e.g., "Everlong Foo Fighters") are sent to the iTunes API for metadata lookup. No journal text or context is ever shared.
 
 ---
 
@@ -198,13 +218,17 @@ Dashboard (Analytics):
 1. Process journals where you mention songs
 2. Ingest to RAG (option 4)
 3. Launch dashboard (option 7)
-4. Scroll to the "🎵 Music Mentioned" section
+4. Open the **🎵 Music** tab
+
+### "I want to customize how the dashboard looks"
+1. Launch dashboard (option 7)
+2. Open the **🎨 Appearance** tab
+3. Pick a preset or dial in your own fonts, colours, and spacing
 
 ### "I just want to automatically process new photos"
 1. Set up folder watcher (option 3)
 2. Point it to your iPhone sync folder
-3. Let it run in the background
-4. New photos are processed automatically
+3. Let it run in the background — new photos are processed automatically
 
 ---
 
@@ -224,6 +248,10 @@ Dashboard (Analytics):
 - Run "Ingest journals to database" (option 4) first
 - Make sure OCR has completed and `ocr_output/text/` has `.txt` files
 
+### Sidebar search returns no results
+- Make sure you've ingested entries first (option 4)
+- Check that the RAG Database Path in the sidebar matches your actual `vector_db` location
+
 ### Chat interface errors
 - Check that you've run ingestion (option 4)
 - For LLM features, make sure Ollama is installed and running
@@ -231,9 +259,13 @@ Dashboard (Analytics):
 
 ### Music not detected
 - Write about songs with clear patterns:
-  - "listened to 'Song Title' by Artist"
-  - "listening to Artist Name"
-  - Song: "Title"
+  - `listened to "Song Title" by Artist`
+  - `listening to Artist Name`
+  - `Song: "Title"`
+
+### Appearance tab styles not applying
+- Make sure you click away from a colour picker or move a slider to trigger a rerun
+- Preset buttons apply their values immediately to the CSS preview; use them as a starting point and adjust from there
 
 ---
 
@@ -252,9 +284,9 @@ Dashboard (Analytics):
 - **Date ranges help** — "Find entries about work from last month"
 
 ### Music Detection
-- **Use quotes** — "listened to 'Song Title'"
-- **Mention artists** — "been listening to Artist Name"
-- **Be explicit** — "Song: 'Title'" works great
+- **Use quotes** — `listened to "Song Title"`
+- **Mention artists** — `been listening to Artist Name`
+- **Be explicit** — `Song: "Title"` works great
 
 ---
 
@@ -274,8 +306,12 @@ Dashboard (Analytics):
 - [x] Interactive dashboards
 - [x] Chat interface
 - [x] Sentiment analysis (VADER)
-- [x] Music detection & linking
+- [x] Music detection & linking with iTunes artwork
 - [x] Database management
+- [x] At-a-glance metrics pinned above tabs
+- [x] Section help tooltips throughout dashboard
+- [x] RAG search integrated into dashboard sidebar
+- [x] Appearance tab with live CSS theming and presets
 - [ ] Better handwriting OCR (exploring alternatives)
 - [ ] Export features (PDF reports, data dumps)
 - [ ] Mobile app companion (future)
@@ -291,7 +327,7 @@ Built with:
 - **Sentence-Transformers** — Embeddings
 - **Streamlit** — Web interface
 - **VADER** — Sentiment analysis
-- **iTunes API** — Music metadata
+- **iTunes API** — Music metadata & artwork
 
 ---
 
