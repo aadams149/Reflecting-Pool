@@ -78,7 +78,8 @@ def main():
     port = find_free_port()
     url = f"http://localhost:{port}"
 
-    # Start Streamlit as a background subprocess
+    # Start Streamlit as a background subprocess (no visible console window)
+    creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
     proc = subprocess.Popen(
         [
             python, "-m", "streamlit", "run", app_path,
@@ -90,6 +91,7 @@ def main():
         cwd=base_dir,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        creationflags=creation_flags,
     )
 
     # Wait for the server to be ready

@@ -36,6 +36,9 @@ dashboard/.streamlit/
 # Logs
 *.log
 
+# User preferences
+.reflecting_pool_theme.json
+
 # Environment variables
 .env
 .env.local
