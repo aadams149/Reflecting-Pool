@@ -11,6 +11,7 @@ ENV/
 *.egg-info/
 dist/
 build/
+*.spec
 
 # OCR Output (personal journal data)
 ocr/ocr_output/text/
