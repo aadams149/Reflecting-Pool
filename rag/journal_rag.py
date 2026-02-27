@@ -399,19 +399,17 @@ class OllamaLLM:
             model_names = [m['name'].split(':')[0] for m in models]
             
             if model not in model_names:
-                print(f"⚠ Model '{model}' not found in Ollama")
-                print(f"  Available models: {', '.join(model_names)}")
-                print(f"  Install with: ollama pull {model}")
-                raise ValueError(f"Model {model} not available")
-            
-            print(f"✓ Connected to Ollama (model: {model})")
-            
-        except Exception as e:
-            print(f"❌ Could not connect to Ollama: {e}")
-            print("  Make sure Ollama is installed and running:")
-            print("  - Install: https://ollama.ai")
-            print("  - Start: ollama serve")
-            raise
+                available = ', '.join(model_names) if model_names else 'none'
+                raise ValueError(
+                    f"Model '{model}' not found. Available: {available}. "
+                    f"Install with: ollama pull {model}"
+                )
+
+        except requests.exceptions.ConnectionError:
+            raise ConnectionError(
+                "Could not connect to Ollama. "
+                "Make sure it is installed (https://ollama.ai) and running (ollama serve)."
+            )
     
     def generate(self, prompt: str, context: List[str]) -> str:
         """

@@ -106,8 +106,14 @@ a, a:visited {{ color: {t["link_color"]} !important; }}
 # ---------------------------------------------------------------------------
 
 def _log_path() -> Path:
-    """Return the session log file path (parent of project root)."""
-    return ROOT.parent / "reflecting_pool_session.log"
+    """Return the session log file path (logs/ folder, timestamped per session)."""
+    logs_dir = ROOT / "logs"
+    logs_dir.mkdir(exist_ok=True)
+    # One log file per session, keyed by the session start time
+    if "log_filename" not in st.session_state:
+        ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        st.session_state.log_filename = f"session_{ts}.log"
+    return logs_dir / st.session_state.log_filename
 
 
 def session_log(message: str):
@@ -183,6 +189,16 @@ def get_sentiment(text: str) -> float:
     return analyzer.polarity_scores(text)["compound"]
 
 
+@st.cache_data(show_spinner="Analyzing sentiment...")
+def _add_sentiment(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute and cache sentiment scores for a dataframe."""
+    if "sentiment" in df.columns:
+        return df
+    df = df.copy()
+    df["sentiment"] = df["text"].apply(get_sentiment)
+    return df
+
+
 def section_header(title: str, help_text: str):
     """Section header with a collapsible help tooltip."""
     st.header(title)
@@ -218,8 +234,9 @@ def extract_common_words(texts: List[str], n_words: int = 30) -> List[Tuple[str,
     return Counter(all_words).most_common(n_words)
 
 
+@st.cache_resource
 def _get_rag(db_path: str):
-    """Lazily import and instantiate JournalRAG."""
+    """Lazily import and instantiate JournalRAG (cached so embeddings load once)."""
     from journal_rag import JournalRAG
     return JournalRAG(db_path=db_path)
 
@@ -433,6 +450,17 @@ def tab_words(df: pd.DataFrame):
 # Tab: Music
 # ---------------------------------------------------------------------------
 
+@st.cache_data(show_spinner=False, ttl=600)
+def _cached_music_search(df: pd.DataFrame) -> dict:
+    """Cache iTunes lookups so they don't re-run on every interaction."""
+    from music_extraction import extract_and_search_music
+    entries = [
+        {"date": row["date"].strftime("%Y-%m-%d"), "text": row["text"]}
+        for _, row in df.iterrows()
+    ]
+    return extract_and_search_music(entries)
+
+
 def tab_music(df: pd.DataFrame):
     section_header("Music Mentioned", """
         Songs and artists detected in your journal entries,
@@ -443,11 +471,7 @@ def tab_music(df: pd.DataFrame):
         from music_extraction import extract_and_search_music, format_duration
 
         with st.spinner("Searching for music mentions..."):
-            entries = [
-                {"date": row["date"].strftime("%Y-%m-%d"), "text": row["text"]}
-                for _, row in df.iterrows()
-            ]
-            music_data = extract_and_search_music(entries)
+            music_data = _cached_music_search(df)
 
         if not music_data:
             st.info("No music mentions detected. Try writing about songs you're listening to!")
@@ -940,11 +964,8 @@ def main():
         tab_chat(rag_db_path)
         return
 
-    # Compute sentiment
-    if "sentiment" not in filtered_df.columns:
-        with st.spinner("Analyzing sentiment..."):
-            filtered_df = filtered_df.copy()
-            filtered_df["sentiment"] = filtered_df["text"].apply(get_sentiment)
+    # Compute sentiment (cached to avoid re-running on every interaction)
+    filtered_df = _add_sentiment(filtered_df)
 
     # --- Overview metrics ---
     with st.expander("About these metrics", expanded=False):
