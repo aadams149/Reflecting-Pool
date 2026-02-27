@@ -350,14 +350,6 @@ class JournalRAG:
         
         return sorted(entries_by_date.values(), key=lambda x: x['date'])
     
-    def get_all_dates(self) -> List[str]:
-        """Get all unique dates in the database"""
-        all_entries = self.collection.get()
-        dates = set()
-        for metadata in all_entries['metadatas']:
-            dates.add(metadata['date'])
-        return sorted(list(dates))
-    
     def get_stats(self) -> Dict:
         """Get database statistics"""
         all_entries = self.collection.get()
