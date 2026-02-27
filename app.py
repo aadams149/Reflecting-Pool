@@ -336,7 +336,12 @@ def render_sidebar(df: pd.DataFrame):
         log_file = _log_path()
         st.sidebar.caption(f"Logging to: {log_file}")
         if log_file.exists():
-            if st.sidebar.button("View log"):
+            if "show_log" not in st.session_state:
+                st.session_state.show_log = False
+            if st.sidebar.button("Hide log" if st.session_state.show_log else "View log"):
+                st.session_state.show_log = not st.session_state.show_log
+                st.rerun()
+            if st.session_state.show_log:
                 st.sidebar.code(log_file.read_text(encoding="utf-8")[-2000:], language="text")
 
     return ocr_output_dir, rag_db_path, filtered_df
@@ -525,6 +530,27 @@ def tab_music(df: pd.DataFrame):
 
         st.caption(f"Found {len(sorted_music)} songs/artists across {len(df)} entries")
 
+        # --- Music export ---
+        music_rows = []
+        for item in sorted_music:
+            meta = item["metadata"]
+            music_rows.append({
+                "Song": meta["song_name"],
+                "Artist": meta["artist_name"],
+                "Album": meta.get("album_name", ""),
+                "Genre": meta.get("genre", ""),
+                "Mentions": item["count"],
+                "Dates Mentioned": "; ".join(sorted(item["dates"])),
+                "iTunes URL": meta.get("itunes_url", ""),
+            })
+        music_df = pd.DataFrame(music_rows)
+        st.download_button(
+            "Download music data (CSV)",
+            data=music_df.to_csv(index=False),
+            file_name="journal_music.csv",
+            mime="text/csv",
+        )
+
     except ImportError:
         st.error("Music extraction module not found. Ensure music_extraction.py is in the dashboard folder.")
     except Exception as e:
@@ -617,6 +643,7 @@ def tab_chat(rag_db_path: str):
                     st.session_state.messages.append({
                         "role": "assistant", "content": response, "sources": sources,
                     })
+                    session_log(f"Chat response: {response[:200]}")
 
                 except FileNotFoundError:
                     msg = "RAG database not found. Please ingest your journal entries first."
@@ -740,6 +767,29 @@ def tab_entries(df: pd.DataFrame):
             if len(row["text"]) > 300:
                 preview += "..."
             st.text(preview)
+
+    # --- Data export ---
+    st.divider()
+    st.subheader("Export Data")
+    ex1, ex2 = st.columns(2)
+    with ex1:
+        stats_df = df[["date", "word_count", "sentiment"]].copy()
+        stats_df["date"] = stats_df["date"].dt.strftime("%Y-%m-%d")
+        st.download_button(
+            "Download statistics (CSV)",
+            data=stats_df.to_csv(index=False),
+            file_name="journal_statistics.csv",
+            mime="text/csv",
+        )
+    with ex2:
+        full_df = df[["date", "word_count", "char_count", "sentiment", "text"]].copy()
+        full_df["date"] = full_df["date"].dt.strftime("%Y-%m-%d")
+        st.download_button(
+            "Download all entries (CSV)",
+            data=full_df.to_csv(index=False),
+            file_name="journal_entries.csv",
+            mime="text/csv",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -933,11 +983,6 @@ a, a:visited {{ color: {link_color} !important; }}
 
 def main():
     st.title("Reflecting Pool")
-
-    # Log app launch (once per session)
-    if "launched" not in st.session_state:
-        st.session_state.launched = True
-        session_log("App launched")
 
     # Apply saved theme CSS on every page (not just the Appearance tab)
     theme = load_theme()
