@@ -126,3 +126,7 @@ Double-click `Reflecting Pool.exe` to launch. It finds Python on your PATH, star
 ## Built With
 
 Tesseract OCR, ChromaDB, Sentence-Transformers, Streamlit, Plotly, VADER, iTunes API
+
+## Credits
+
+App icon: ["Ancient Reflective Portal"](https://stockcake.com/i/ancient-reflective-portal_2656640_1437598) from StockCake
