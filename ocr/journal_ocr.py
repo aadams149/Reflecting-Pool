@@ -250,8 +250,8 @@ class JournalOCRPipeline:
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2)
         
-        print(f"  → Extracted {metadata['word_count']} words")
-        print(f"  → Saved to {text_path}")
+        print(f"  Extracted {metadata['word_count']} words")
+        print(f"  Saved to {text_path}")
         
         return metadata
     
@@ -286,7 +286,7 @@ class JournalOCRPipeline:
                 )
                 results.append(metadata)
             except Exception as e:
-                print(f"  ✗ Error processing {image_path.name}: {e}")
+                print(f"  Error processing {image_path.name}: {e}")
                 continue
         
         # Save batch metadata
@@ -294,8 +294,8 @@ class JournalOCRPipeline:
         with open(batch_metadata_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2)
         
-        print(f"\n✓ Processed {len(results)}/{len(image_files)} images successfully")
-        print(f"✓ Batch metadata saved to {batch_metadata_path}")
+        print(f"\nProcessed {len(results)}/{len(image_files)} images successfully")
+        print(f"Batch metadata saved to {batch_metadata_path}")
         
         return results
 
