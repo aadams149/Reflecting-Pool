@@ -46,7 +46,7 @@ class JournalPhotoHandler(FileSystemEventHandler):
         # Wait a moment to ensure file is fully written
         time.sleep(2)
         
-        print(f"\n📸 New journal photo detected: {file_path.name}")
+        print(f"\nNew journal photo detected: {file_path.name}")
         
         try:
             # Extract date from filename if possible (e.g., IMG_2026-01-31.jpg)
@@ -63,10 +63,10 @@ class JournalPhotoHandler(FileSystemEventHandler):
             )
             
             self.processed_files.add(str(file_path))
-            print(f"✅ Successfully processed! Extracted {metadata['word_count']} words")
+            print(f"Successfully processed! Extracted {metadata['word_count']} words")
             
         except Exception as e:
-            print(f"❌ Error processing {file_path.name}: {e}")
+            print(f"Error processing {file_path.name}: {e}")
     
     def _extract_date_from_filename(self, filename: str) -> str | None:
         """
@@ -104,11 +104,11 @@ def watch_folder(watch_dir: str, output_dir: str, engine: str = "tesseract"):
     if not watch_path.exists():
         raise FileNotFoundError(f"Watch directory does not exist: {watch_dir}")
     
-    print(f"🔍 Starting journal photo watcher...")
+    print(f"Starting journal photo watcher...")
     print(f"   Watching: {watch_path.absolute()}")
     print(f"   Output: {output_dir}")
     print(f"   OCR Engine: {engine}")
-    print(f"\n📱 Add new journal photos to the watch folder to process them automatically.")
+    print(f"\nAdd new journal photos to the watch folder to process them automatically.")
     print(f"   Press Ctrl+C to stop.\n")
     
     # Initialize pipeline
@@ -124,11 +124,11 @@ def watch_folder(watch_dir: str, output_dir: str, engine: str = "tesseract"):
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n\n⏹️  Stopping watcher...")
+        print("\n\nStopping watcher...")
         observer.stop()
     
     observer.join()
-    print("✅ Watcher stopped.")
+    print("Watcher stopped.")
 
 
 def main():

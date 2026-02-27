@@ -11,9 +11,12 @@ A self-hosted system for digitizing, searching, and analyzing handwritten journa
 
 ## Quick Start
 
+**Guided install:** double-click `install.bat` — it checks prerequisites, installs dependencies, and optionally builds the desktop launcher.
+
+**Manual install:**
 ```cmd
 pip install -r requirements.txt
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 Or use the menu launcher: double-click `Journal_System.bat`.
@@ -90,6 +93,18 @@ python rag/journal_rag.py search "what was I worried about"
 # Interactive search session
 python rag/journal_rag.py interactive --llm
 ```
+
+## Building the Desktop Launcher (.exe)
+
+A lightweight launcher exe (~14 MB) wraps the Streamlit server in a native desktop window. Python and all pip dependencies must still be installed on the machine.
+
+```cmd
+pip install pywebview pyinstaller
+python -m PyInstaller --onefile --noconsole --name "Reflecting Pool" --icon favicon.ico launcher.py
+move "dist\Reflecting Pool.exe" .
+```
+
+Double-click `Reflecting Pool.exe` to launch. It finds Python on your PATH, starts Streamlit in the background, and opens the app in a native window (falls back to your browser if pywebview is missing).
 
 ## Privacy
 

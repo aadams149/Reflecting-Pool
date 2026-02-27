@@ -44,7 +44,7 @@ class JournalRAG:
             metadata={"description": "Personal journal entries"}
         )
         
-        print(f"✓ RAG system initialized")
+        print("RAG system initialized")
         print(f"  Database: {self.db_path}")
         print(f"  Entries in database: {self.collection.count()}")
     
@@ -70,7 +70,7 @@ class JournalRAG:
                 f"OCR output directory not found or incomplete: {ocr_output_dir}"
             )
         
-        print(f"\n📚 Ingesting journal entries from {ocr_output_dir}")
+        print(f"\nIngesting journal entries from {ocr_output_dir}")
         
         text_files = sorted(text_dir.glob("*.txt"))
         if not text_files:
@@ -82,7 +82,7 @@ class JournalRAG:
             metadata_file = metadata_dir / f"{text_file.stem}.json"
             
             if not metadata_file.exists():
-                print(f"  ⚠ Skipping {text_file.name} - no metadata found")
+                print(f"  Skipping {text_file.name} - no metadata found")
                 continue
             
             # Load text and metadata
@@ -93,7 +93,7 @@ class JournalRAG:
                 metadata = json.load(f)
             
             if not text:
-                print(f"  ⚠ Skipping {text_file.name} - empty text")
+                print(f"  Skipping {text_file.name} - empty text")
                 continue
             
             # Chunk text if it's long
@@ -125,9 +125,9 @@ class JournalRAG:
                 )
             
             ingested += 1
-            print(f"  ✓ {text_file.name} ({len(chunks)} chunks)")
+            print(f"  {text_file.name} ({len(chunks)} chunks)")
         
-        print(f"\n✓ Ingested {ingested} entries")
+        print(f"\nIngested {ingested} entries")
         print(f"  Total documents in database: {self.collection.count()}")
         
         return ingested
@@ -178,7 +178,7 @@ class JournalRAG:
             List of search results with text and metadata
         """
         if self.collection.count() == 0:
-            print("⚠ Database is empty. Ingest entries first with --ingest")
+            print("Database is empty. Ingest entries first with --ingest")
             return []
         
         results = self.collection.query(
@@ -277,7 +277,7 @@ class JournalRAG:
         self.collection.delete(ids=results['ids'])
         
         deleted_count = len(results['ids'])
-        print(f"✓ Deleted {deleted_count} chunks from {date}")
+        print(f"Deleted {deleted_count} chunks from {date}")
         
         return deleted_count
     
@@ -302,7 +302,7 @@ class JournalRAG:
         # Delete all matching chunks
         self.collection.delete(ids=matching_ids)
         
-        print(f"✓ Deleted {len(matching_ids)} chunks for entry: {entry_id}")
+        print(f"Deleted {len(matching_ids)} chunks for entry: {entry_id}")
         return True
     
     def clear_all_entries(self) -> int:
@@ -324,7 +324,7 @@ class JournalRAG:
         # Delete everything
         self.collection.delete(ids=all_entries['ids'])
         
-        print(f"✓ Deleted all {total} entries from database")
+        print(f"Deleted all {total} entries from database")
         return total
     
     def list_all_entries(self) -> List[Dict]:
@@ -470,7 +470,7 @@ def interactive_search(rag: JournalRAG, use_llm: bool = False, llm_model: str = 
             use_llm = False
     
     print("\n" + "="*60)
-    print("📖 Journal Search Interface")
+    print("Journal Search Interface")
     print("="*60)
     
     stats = rag.get_stats()
@@ -516,7 +516,7 @@ def interactive_search(rag: JournalRAG, use_llm: bool = False, llm_model: str = 
                     print("No results found")
                     continue
                 
-                print(f"\n📄 Found {len(results)} results:\n")
+                print(f"\nFound {len(results)} results:\n")
                 for i, result in enumerate(results, 1):
                     print(f"{i}. [{result['date']}]")
                     print(f"   {result['text'][:200]}...")
@@ -528,20 +528,20 @@ def interactive_search(rag: JournalRAG, use_llm: bool = False, llm_model: str = 
                 results = rag.search(question, n_results=3)
                 context = [r['text'] for r in results]
                 
-                print("\n🤔 Thinking...\n")
+                print("\nThinking...\n")
                 answer = llm.generate(question, context)
-                print(f"💡 {answer}\n")
+                print(f"{answer}\n")
             
             elif command == 'dates':
                 dates = rag.get_all_dates()
-                print(f"\n📅 {len(dates)} entry dates:")
+                print(f"\n{len(dates)} entry dates:")
                 for date in dates:
                     print(f"  - {date}")
                 print()
             
             elif command == 'list':
                 entries = rag.list_all_entries()
-                print(f"\n📚 All entries in database:\n")
+                print(f"\nAll entries in database:\n")
                 for entry in entries:
                     print(f"  {entry['date']} - {entry['chunks']} chunks, ~{entry['word_count']} words")
                 print()
@@ -556,7 +556,7 @@ def interactive_search(rag: JournalRAG, use_llm: bool = False, llm_model: str = 
                 print()
             
             elif command == 'clear':
-                confirm = input("⚠️  Delete ALL entries? This cannot be undone! (type 'DELETE ALL' to confirm): ")
+                confirm = input("WARNING: Delete ALL entries? This cannot be undone! (type 'DELETE ALL' to confirm): ")
                 if confirm == 'DELETE ALL':
                     rag.clear_all_entries()
                 else:
@@ -565,7 +565,7 @@ def interactive_search(rag: JournalRAG, use_llm: bool = False, llm_model: str = 
             
             elif command == 'stats':
                 stats = rag.get_stats()
-                print(f"\n📊 Database Statistics:")
+                print(f"\nDatabase Statistics:")
                 print(f"  Total Entries: {stats['total_entries']}")
                 print(f"  Total Chunks: {stats['total_chunks']}")
                 print(f"  Total Words: {stats['total_words']:,}")
@@ -580,7 +580,7 @@ def interactive_search(rag: JournalRAG, use_llm: bool = False, llm_model: str = 
                     continue
                 
                 results = rag.search_by_date_range(dates[0], dates[1], n_results=10)
-                print(f"\n📄 Found {len(results)} entries in date range:\n")
+                print(f"\nFound {len(results)} entries in date range:\n")
                 for result in results:
                     print(f"[{result['date']}]")
                     print(f"{result['text'][:200]}...")
@@ -696,7 +696,7 @@ def main():
     
     elif args.command == 'clear':
         if not args.yes:
-            confirm = input("⚠️  Delete ALL entries? This cannot be undone! (type 'DELETE ALL' to confirm): ")
+            confirm = input("WARNING: Delete ALL entries? This cannot be undone! (type 'DELETE ALL' to confirm): ")
             if confirm != 'DELETE ALL':
                 print("Cancelled")
                 return 0
