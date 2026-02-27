@@ -35,6 +35,7 @@ dashboard/.streamlit/
 
 # Logs
 *.log
+logs/
 
 # User preferences
 .reflecting_pool_theme.json
