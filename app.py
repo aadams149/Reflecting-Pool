@@ -29,6 +29,96 @@ from typing import Dict, List, Tuple
 # Default paths (resolved from project root)
 DEFAULT_OCR_DIR = str(ROOT / "ocr" / "ocr_output")
 DEFAULT_RAG_DB = str(ROOT / "rag" / "vector_db")
+THEME_FILE = ROOT / ".reflecting_pool_theme.json"
+
+
+# ---------------------------------------------------------------------------
+# Theme persistence
+# ---------------------------------------------------------------------------
+
+_THEME_DEFAULTS = {
+    "body_font": "Georgia", "heading_font": "Garamond",
+    "font_size": 16, "line_height": 1.6,
+    "text_color": "#262730", "heading_color": "#0f0f23",
+    "link_color": "#636EFA", "metric_color": "#1a1a2e",
+    "bg_color": "#ffffff", "sidebar_bg": "#f8f9fa",
+    "content_padding": 1.0, "block_gap": 1.5,
+    "metric_font_size": 14, "border_radius": 8,
+}
+
+
+def load_theme() -> dict:
+    """Load saved theme or return defaults."""
+    if THEME_FILE.exists():
+        try:
+            with open(THEME_FILE, "r") as f:
+                saved = json.load(f)
+            return {**_THEME_DEFAULTS, **saved}
+        except (json.JSONDecodeError, OSError):
+            pass
+    return dict(_THEME_DEFAULTS)
+
+
+def save_theme(theme: dict):
+    """Persist the current theme to disk."""
+    with open(THEME_FILE, "w") as f:
+        json.dump(theme, f, indent=2)
+
+
+def _inject_theme_css(t: dict):
+    """Inject the saved theme as page-wide CSS."""
+    st.markdown(f"""<style>
+html, body, [class*="css"] {{
+    font-family: '{t["body_font"]}', serif !important;
+    font-size: {t["font_size"]}px !important;
+    line-height: {t["line_height"]} !important;
+    color: {t["text_color"]} !important;
+    background-color: {t["bg_color"]} !important;
+}}
+h1, h2, h3, h4, h5, h6,
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
+    font-family: '{t["heading_font"]}', serif !important;
+    color: {t["heading_color"]} !important;
+}}
+a, a:visited {{ color: {t["link_color"]} !important; }}
+[data-testid="stMetricValue"] {{
+    color: {t["metric_color"]} !important;
+    font-family: '{t["heading_font"]}', serif !important;
+}}
+[data-testid="stMetricLabel"] {{
+    font-size: {t["metric_font_size"]}px !important;
+    color: {t["text_color"]} !important; opacity: 0.75;
+}}
+[data-testid="stSidebar"] {{ background-color: {t["sidebar_bg"]} !important; }}
+[data-testid="stSidebar"] * {{ color: {t["text_color"]} !important; }}
+.block-container {{
+    padding-left: {t["content_padding"]}rem !important;
+    padding-right: {t["content_padding"]}rem !important;
+}}
+.element-container {{ margin-bottom: {t["block_gap"] / 2}rem !important; }}
+[data-testid="stExpander"] {{ border-radius: {t["border_radius"]}px !important; }}
+[data-baseweb="tab-list"] {{ font-family: '{t["body_font"]}', serif !important; }}
+</style>""", unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
+# Session logging
+# ---------------------------------------------------------------------------
+
+def _log_path() -> Path:
+    """Return the session log file path (parent of project root)."""
+    return ROOT.parent / "reflecting_pool_session.log"
+
+
+def session_log(message: str):
+    """Append a timestamped line to the session log if logging is active."""
+    if not st.session_state.get("session_logging"):
+        return
+    try:
+        with open(_log_path(), "a", encoding="utf-8") as f:
+            f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}\n")
+    except OSError:
+        pass
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -164,6 +254,7 @@ def render_sidebar(df: pd.DataFrame):
 
     if st.sidebar.button("Search", type="primary"):
         if search_query:
+            session_log(f"Sidebar search: {search_query}")
             try:
                 with st.spinner("Searching..."):
                     rag = _get_rag(rag_db_path)
@@ -206,6 +297,30 @@ def render_sidebar(df: pd.DataFrame):
         if len(date_range) == 2:
             mask = (df["date"].dt.date >= date_range[0]) & (df["date"].dt.date <= date_range[1])
             filtered_df = df[mask]
+
+    # --- Session logging ---
+    st.sidebar.header("Session Log")
+    if "session_logging" not in st.session_state:
+        st.session_state.session_logging = False
+
+    logging_on = st.sidebar.toggle(
+        "Enable session log",
+        value=st.session_state.session_logging,
+        help=f"Writes activity to {_log_path()}",
+    )
+    if logging_on != st.session_state.session_logging:
+        st.session_state.session_logging = logging_on
+        if logging_on:
+            session_log("Session logging started")
+        else:
+            session_log("Session logging stopped")
+
+    if st.session_state.session_logging:
+        log_file = _log_path()
+        st.sidebar.caption(f"Logging to: {log_file}")
+        if log_file.exists():
+            if st.sidebar.button("View log"):
+                st.sidebar.code(log_file.read_text(encoding="utf-8")[-2000:], language="text")
 
     return ocr_output_dir, rag_db_path, filtered_df
 
@@ -437,6 +552,7 @@ def tab_chat(rag_db_path: str):
 
     # --- Chat input ---
     if prompt := st.chat_input("Ask a question about your journals..."):
+        session_log(f"Chat question: {prompt}")
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -608,47 +724,52 @@ def tab_entries(df: pd.DataFrame):
 
 def tab_appearance():
     section_header("Appearance & Styling", """
-        Customise the look of this dashboard. Changes apply immediately.
+        Customise the look of this dashboard. Changes apply immediately
+        and are saved automatically so they persist between launches.
     """)
+
+    # Load saved theme as defaults
+    t = load_theme()
+
+    body_fonts = ["Georgia", "Palatino Linotype", "Garamond", "Times New Roman",
+                  "Merriweather", "Source Serif 4", "sans-serif", "monospace"]
+    heading_fonts = ["Georgia", "Palatino Linotype", "Garamond", "Impact",
+                     "Trebuchet MS", "Verdana", "serif", "sans-serif"]
 
     # --- Typography ---
     st.subheader("Typography")
     fc1, fc2 = st.columns(2)
     with fc1:
-        body_font = st.selectbox("Body font", [
-            "Georgia", "Palatino Linotype", "Garamond", "Times New Roman",
-            "Merriweather", "Source Serif 4", "sans-serif", "monospace",
-        ], index=0)
-        font_size = st.slider("Base font size (px)", 12, 22, 16)
+        body_font = st.selectbox("Body font", body_fonts,
+                                 index=body_fonts.index(t["body_font"]) if t["body_font"] in body_fonts else 0)
+        font_size = st.slider("Base font size (px)", 12, 22, t["font_size"])
     with fc2:
-        heading_font = st.selectbox("Heading font", [
-            "Georgia", "Palatino Linotype", "Garamond", "Impact",
-            "Trebuchet MS", "Verdana", "serif", "sans-serif",
-        ], index=2)
-        line_height = st.slider("Line height", 1.2, 2.2, 1.6, step=0.1)
+        heading_font = st.selectbox("Heading font", heading_fonts,
+                                    index=heading_fonts.index(t["heading_font"]) if t["heading_font"] in heading_fonts else 2)
+        line_height = st.slider("Line height", 1.2, 2.2, t["line_height"], step=0.1)
 
     # --- Colours ---
     st.subheader("Colours")
     cc1, cc2, cc3 = st.columns(3)
     with cc1:
-        text_color = st.color_picker("Body text", "#262730")
-        heading_color = st.color_picker("Headings", "#0f0f23")
+        text_color = st.color_picker("Body text", t["text_color"])
+        heading_color = st.color_picker("Headings", t["heading_color"])
     with cc2:
-        link_color = st.color_picker("Links / accent", "#636EFA")
-        metric_color = st.color_picker("Metric values", "#1a1a2e")
+        link_color = st.color_picker("Links / accent", t["link_color"])
+        metric_color = st.color_picker("Metric values", t["metric_color"])
     with cc3:
-        bg_color = st.color_picker("Page background", "#ffffff")
-        sidebar_bg = st.color_picker("Sidebar background", "#f8f9fa")
+        bg_color = st.color_picker("Page background", t["bg_color"])
+        sidebar_bg = st.color_picker("Sidebar background", t["sidebar_bg"])
 
     # --- Spacing ---
     st.subheader("Spacing & Layout")
     sc1, sc2 = st.columns(2)
     with sc1:
-        content_padding = st.slider("Content padding (rem)", 0.5, 4.0, 1.0, step=0.25)
-        block_gap = st.slider("Section gap (rem)", 0.5, 4.0, 1.5, step=0.25)
+        content_padding = st.slider("Content padding (rem)", 0.5, 4.0, t["content_padding"], step=0.25)
+        block_gap = st.slider("Section gap (rem)", 0.5, 4.0, t["block_gap"], step=0.25)
     with sc2:
-        metric_font_size = st.slider("Metric label size (px)", 10, 18, 14)
-        border_radius = st.slider("Border radius (px)", 0, 20, 8)
+        metric_font_size = st.slider("Metric label size (px)", 10, 18, t["metric_font_size"])
+        border_radius = st.slider("Border radius (px)", 0, 20, t["border_radius"])
 
     # --- Presets ---
     st.subheader("Quick Presets")
@@ -692,29 +813,27 @@ def tab_appearance():
     }
 
     preset_cols = st.columns(len(presets))
-    chosen_preset = None
-    for i, (label, _) in enumerate(presets.items()):
+    for i, (label, p) in enumerate(presets.items()):
         with preset_cols[i]:
             if st.button(label, use_container_width=True):
-                chosen_preset = label
+                save_theme(p)
+                session_log(f"Theme preset applied: {label}")
+                st.rerun()
 
-    if chosen_preset:
-        p = presets[chosen_preset]
-        st.info(f"**{chosen_preset}** selected! Reload to apply preset widget defaults. CSS preview below already reflects the preset.")
-        body_font = p["body_font"]
-        heading_font = p["heading_font"]
-        font_size = p["font_size"]
-        line_height = p["line_height"]
-        text_color = p["text_color"]
-        heading_color = p["heading_color"]
-        link_color = p["link_color"]
-        metric_color = p["metric_color"]
-        bg_color = p["bg_color"]
-        sidebar_bg = p["sidebar_bg"]
-        content_padding = p["content_padding"]
-        block_gap = p["block_gap"]
-        metric_font_size = p["metric_font_size"]
-        border_radius = p["border_radius"]
+    # Build current theme dict from widget values
+    current_theme = {
+        "body_font": body_font, "heading_font": heading_font,
+        "font_size": font_size, "line_height": line_height,
+        "text_color": text_color, "heading_color": heading_color,
+        "link_color": link_color, "metric_color": metric_color,
+        "bg_color": bg_color, "sidebar_bg": sidebar_bg,
+        "content_padding": content_padding, "block_gap": block_gap,
+        "metric_font_size": metric_font_size, "border_radius": border_radius,
+    }
+
+    # Auto-save whenever theme differs from what's on disk
+    if current_theme != t:
+        save_theme(current_theme)
 
     # --- Inject CSS ---
     custom_css = f"""
@@ -773,10 +892,15 @@ a, a:visited {{ color: {link_color} !important; }}
 </div>
 """, unsafe_allow_html=True)
 
-    # --- Export ---
+    # --- Export / Reset ---
     st.subheader("Export CSS")
     st.caption("Copy this snippet to reuse or share your theme.")
     st.code(custom_css, language="css")
+
+    if st.button("Reset to defaults"):
+        save_theme(_THEME_DEFAULTS)
+        session_log("Theme reset to defaults")
+        st.rerun()
 
 
 # ---------------------------------------------------------------------------
@@ -785,6 +909,15 @@ a, a:visited {{ color: {link_color} !important; }}
 
 def main():
     st.title("Reflecting Pool")
+
+    # Log app launch (once per session)
+    if "launched" not in st.session_state:
+        st.session_state.launched = True
+        session_log("App launched")
+
+    # Apply saved theme CSS on every page (not just the Appearance tab)
+    theme = load_theme()
+    _inject_theme_css(theme)
 
     # Load data
     df = load_journal_data(DEFAULT_OCR_DIR)

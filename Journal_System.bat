@@ -55,7 +55,7 @@ goto MENU
 :APP
 echo.
 echo Launching Reflecting Pool...
-start "" cmd /k "python -m streamlit run app.py"
+start "" /min cmd /c "python -m streamlit run app.py"
 echo.
 echo App launched in new window!
 echo You can keep it running and return to this menu.

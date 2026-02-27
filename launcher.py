@@ -5,10 +5,37 @@ Starts the Streamlit server and opens it in a native desktop window.
 
 import os
 import sys
+import shutil
 import subprocess
 import socket
-import threading
 import time
+import ctypes
+
+
+def show_error(message):
+    """Show an error dialog (works in --noconsole mode)."""
+    ctypes.windll.user32.MessageBoxW(0, message, "Reflecting Pool", 0x10)
+
+
+def find_python():
+    """Find the Python executable."""
+    # When frozen, sys.executable is the .exe — find the real Python
+    if not getattr(sys, "frozen", False):
+        return sys.executable
+
+    # Check common locations
+    for candidate in ["python", "python3"]:
+        path = shutil.which(candidate)
+        if path:
+            return path
+
+    # Check the standard Windows install path
+    for ver in ["313", "312", "311", "310", "39"]:
+        path = rf"C:\Python{ver}\python.exe"
+        if os.path.exists(path):
+            return path
+
+    return None
 
 
 def find_free_port(start=8501):
@@ -40,17 +67,22 @@ def main():
 
     app_path = os.path.join(base_dir, "app.py")
     if not os.path.exists(app_path):
-        print(f"Error: app.py not found at {app_path}")
-        input("Press Enter to exit...")
+        show_error(f"app.py not found at:\n{app_path}\n\nMake sure the exe is in the same folder as app.py.")
+        sys.exit(1)
+
+    python = find_python()
+    if not python:
+        show_error("Could not find Python.\n\nMake sure Python is installed and on your PATH.")
         sys.exit(1)
 
     port = find_free_port()
     url = f"http://localhost:{port}"
 
-    # Start Streamlit as a background subprocess
+    # Start Streamlit as a background subprocess (no visible console window)
+    creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
     proc = subprocess.Popen(
         [
-            sys.executable, "-m", "streamlit", "run", app_path,
+            python, "-m", "streamlit", "run", app_path,
             "--server.port", str(port),
             "--server.headless", "true",
             "--browser.gatherUsageStats", "false",
@@ -59,19 +91,19 @@ def main():
         cwd=base_dir,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        creationflags=creation_flags,
     )
 
     # Wait for the server to be ready
     if not wait_for_server(port):
-        print("Error: Streamlit server did not start in time.")
         proc.terminate()
-        input("Press Enter to exit...")
+        show_error("Streamlit server did not start in time.\n\nMake sure streamlit is installed:\n  pip install streamlit")
         sys.exit(1)
 
     # Try native desktop window (pywebview), fall back to browser
     try:
         import webview
-        window = webview.create_window(
+        webview.create_window(
             "Reflecting Pool",
             url,
             width=1280,
@@ -81,9 +113,6 @@ def main():
         webview.start()
     except ImportError:
         import webbrowser
-        print(f"Reflecting Pool running at {url}")
-        print("(Install pywebview for a native desktop window: pip install pywebview)")
-        print("Close this window to stop the server.\n")
         webbrowser.open(url)
         try:
             proc.wait()
