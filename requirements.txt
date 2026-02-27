@@ -27,6 +27,11 @@ pandas>=2.0.0               # Data manipulation and analysis
 vaderSentiment>=3.3.2       # Rule-based sentiment analysis
 
 # ============================================================================
+# Desktop Launcher
+# ============================================================================
+pywebview>=4.0              # Native desktop window (optional, falls back to browser)
+
+# ============================================================================
 # Shared Dependencies
 # ============================================================================
 requests>=2.31.0            # HTTP requests (used by RAG + Dashboard)
