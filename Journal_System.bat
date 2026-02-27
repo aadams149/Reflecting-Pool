@@ -1,6 +1,6 @@
 @echo off
-REM Journal Processing System - Main Menu
-REM Easy access to all journal processing tools
+REM Reflecting Pool - Main Menu
+REM Central launcher for all journal processing tools
 
 REM Anchor to this file's directory so all relative paths work
 cd /d "%~dp0"
@@ -8,44 +8,59 @@ cd /d "%~dp0"
 :MENU
 cls
 echo ========================================
-echo    JOURNAL PROCESSING SYSTEM
+echo        REFLECTING POOL
 echo ========================================
 echo.
 echo Select an option:
 echo.
+echo App:
+echo   1. Launch Reflecting Pool (recommended)
+echo.
 echo OCR (Digitize Photos):
-echo   1. Process folder of photos
-echo   2. Process single photo
-echo   3. Start auto-watcher
+echo   2. Process folder of photos
+echo   3. Process single photo
+echo   4. Start auto-watcher
 echo.
 echo RAG (Search Engine):
-echo   4. Ingest journals to database
-echo   5. Search journals (command line)
-echo   6. Manage database (list/delete entries)
+echo   5. Ingest journals to database
+echo   6. Search journals (command line)
+echo   7. Manage database (list/delete entries)
 echo.
-echo Dashboard (Analytics):
-echo   7. Launch analytics dashboard
-echo   8. Launch chat interface
+echo Legacy (standalone views):
+echo   8. Launch analytics dashboard only
+echo   9. Launch chat interface only
 echo.
 echo   0. Exit
 echo.
 echo ========================================
 echo.
 
-set /p CHOICE="Enter your choice (0-8): "
+set /p CHOICE="Enter your choice (0-9): "
 
 if "%CHOICE%"=="0" goto END
-if "%CHOICE%"=="1" goto OCR_FOLDER
-if "%CHOICE%"=="2" goto OCR_SINGLE
-if "%CHOICE%"=="3" goto WATCHER
-if "%CHOICE%"=="4" goto INGEST
-if "%CHOICE%"=="5" goto SEARCH
-if "%CHOICE%"=="6" goto MANAGE
-if "%CHOICE%"=="7" goto DASHBOARD
-if "%CHOICE%"=="8" goto CHAT
+if "%CHOICE%"=="1" goto APP
+if "%CHOICE%"=="2" goto OCR_FOLDER
+if "%CHOICE%"=="3" goto OCR_SINGLE
+if "%CHOICE%"=="4" goto WATCHER
+if "%CHOICE%"=="5" goto INGEST
+if "%CHOICE%"=="6" goto SEARCH
+if "%CHOICE%"=="7" goto MANAGE
+if "%CHOICE%"=="8" goto DASHBOARD
+if "%CHOICE%"=="9" goto CHAT
 
 echo Invalid choice. Please try again.
 pause
+goto MENU
+
+:APP
+echo.
+echo Launching Reflecting Pool...
+start "" cmd /c "streamlit run app.py"
+echo.
+echo App launched in new window!
+echo You can keep it running and return to this menu.
+echo.
+timeout /t 2 >nul
 goto MENU
 
 :OCR_FOLDER

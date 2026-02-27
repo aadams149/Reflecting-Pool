@@ -197,7 +197,7 @@ try:
         st.sidebar.text(f"{stats['date_range']['first']}")
         st.sidebar.text(f"to")
         st.sidebar.text(f"{stats['date_range']['last']}")
-except:
+except Exception:
     pass
 
 
