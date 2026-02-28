@@ -39,6 +39,12 @@ Reflecting-Pool/
 │   ├── auto_ocr_watcher.py   # Auto-process new photos
 │   ├── config.py             # Tesseract path config
 │   └── ocr_output/           # Processed journal entries
+├── plugin_loader.py          # Plugin discovery and registration
+├── plugins/                  # Drop-in plugins (see plugins/README.md)
+│   ├── word_cloud.py         # Word frequency visualization
+│   ├── calendar_view.py      # Monthly calendar with entry highlights
+│   ├── day_of_week_sentiment.py  # Mood patterns by weekday
+│   └── full_entry_viewer.py  # Full-text entry reader
 ├── rag/                      # Semantic search engine
 │   └── journal_rag.py        # RAG system (ChromaDB + embeddings)
 └── dashboard/                # Standalone dashboard components
@@ -59,6 +65,20 @@ Run `streamlit run app.py` to launch the combined application with these tabs:
 - **Chat** - Conversational semantic search with optional LLM
 - **Entries & Stats** - Detailed stats, streaks, recent entries
 - **Appearance** - Live CSS theming with presets
+- **+ Plugins** - Word Cloud, Calendar, Day-of-Week analysis, Read Entries (and any you add)
+
+### Plugins
+
+The app is modular. Drop a `.py` file into the `plugins/` directory and it automatically appears as a new tab. See [`plugins/README.md`](plugins/README.md) for the full authoring guide. Minimal example:
+
+```python
+from plugin_loader import register
+
+@register("My Plugin", description="Does something cool")
+def render(ctx):
+    import streamlit as st
+    st.write(f"You have {len(ctx.df)} entries!")
+```
 
 ### Daily Workflow
 
