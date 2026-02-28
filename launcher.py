@@ -1,8 +1,15 @@
 """
 Reflecting Pool - Desktop Launcher
+
 Starts the Streamlit server and opens it in a native desktop window.
+
+Usage:
+    python launcher.py                  # auto-detect port, native window
+    python launcher.py --port 8505      # use specific port
+    python launcher.py --no-window      # open in browser instead
 """
 
+import argparse
 import os
 import sys
 import shutil
@@ -59,6 +66,17 @@ def wait_for_server(port, timeout=30):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Reflecting Pool - Desktop Launcher")
+    parser.add_argument(
+        "--port", type=int, default=0,
+        help="Port to run Streamlit on (default: auto-detect a free port)",
+    )
+    parser.add_argument(
+        "--no-window", action="store_true",
+        help="Open in default browser instead of a native desktop window",
+    )
+    args = parser.parse_args()
+
     # Resolve paths relative to this executable / script
     if getattr(sys, "frozen", False):
         base_dir = os.path.dirname(sys.executable)
@@ -75,7 +93,8 @@ def main():
         show_error("Could not find Python.\n\nMake sure Python is installed and on your PATH.")
         sys.exit(1)
 
-    port = find_free_port()
+    # Determine port: user-specified or auto-detect
+    port = args.port if args.port > 0 else find_free_port()
     url = f"http://localhost:{port}"
 
     # Start Streamlit as a background subprocess (no visible console window)
@@ -100,24 +119,35 @@ def main():
         show_error("Streamlit server did not start in time.\n\nMake sure streamlit is installed:\n  pip install streamlit")
         sys.exit(1)
 
-    # Try native desktop window (pywebview), fall back to browser
-    try:
-        import webview
-        webview.create_window(
-            "Reflecting Pool",
-            url,
-            width=1280,
-            height=900,
-            min_size=(800, 600),
-        )
-        webview.start()
-    except ImportError:
+    # Open in native window or browser
+    if args.no_window:
         import webbrowser
         webbrowser.open(url)
+        print(f"Reflecting Pool running at {url}")
+        print("Press Ctrl+C to stop.")
         try:
             proc.wait()
         except KeyboardInterrupt:
             pass
+    else:
+        # Try native desktop window (pywebview), fall back to browser
+        try:
+            import webview
+            webview.create_window(
+                "Reflecting Pool",
+                url,
+                width=1280,
+                height=900,
+                min_size=(800, 600),
+            )
+            webview.start()
+        except ImportError:
+            import webbrowser
+            webbrowser.open(url)
+            try:
+                proc.wait()
+            except KeyboardInterrupt:
+                pass
 
     # Clean up the server when the window is closed
     proc.terminate()
