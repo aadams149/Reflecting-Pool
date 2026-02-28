@@ -9,31 +9,69 @@ import shutil
 import subprocess
 import socket
 import time
-import ctypes
 
 
 def show_error(message):
-    """Show an error dialog (works in --noconsole mode)."""
-    ctypes.windll.user32.MessageBoxW(0, message, "Reflecting Pool", 0x10)
+    """Show an error dialog, cross-platform."""
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(0, message, "Reflecting Pool", 0x10)
+            return
+        except Exception:
+            pass
+    elif sys.platform == "darwin":
+        try:
+            subprocess.run([
+                "osascript", "-e",
+                f'display dialog "{message}" with title "Reflecting Pool" '
+                f'buttons {{"OK"}} with icon stop'
+            ], check=False)
+            return
+        except Exception:
+            pass
+    else:
+        # Linux: try zenity, then kdialog
+        for cmd in [
+            ["zenity", "--error", "--title=Reflecting Pool", f"--text={message}"],
+            ["kdialog", "--error", message, "--title", "Reflecting Pool"],
+        ]:
+            try:
+                subprocess.run(cmd, check=False)
+                return
+            except FileNotFoundError:
+                continue
+    # Final fallback: print to stderr
+    print(f"ERROR: {message}", file=sys.stderr)
 
 
 def find_python():
     """Find the Python executable."""
-    # When frozen, sys.executable is the .exe — find the real Python
+    # When not frozen, use current interpreter
     if not getattr(sys, "frozen", False):
         return sys.executable
 
-    # Check common locations
-    for candidate in ["python", "python3"]:
+    # Check PATH first (all platforms)
+    for candidate in ["python3", "python"]:
         path = shutil.which(candidate)
         if path:
             return path
 
-    # Check the standard Windows install path
-    for ver in ["313", "312", "311", "310", "39"]:
-        path = rf"C:\Python{ver}\python.exe"
-        if os.path.exists(path):
-            return path
+    # Platform-specific fallback paths
+    if sys.platform == "win32":
+        for ver in ["313", "312", "311", "310", "39"]:
+            path = rf"C:\Python{ver}\python.exe"
+            if os.path.exists(path):
+                return path
+    else:
+        # macOS / Linux common locations
+        for path in [
+            "/usr/local/bin/python3",
+            "/usr/bin/python3",
+            "/opt/homebrew/bin/python3",
+        ]:
+            if os.path.exists(path):
+                return path
 
     return None
 
@@ -78,8 +116,11 @@ def main():
     port = find_free_port()
     url = f"http://localhost:{port}"
 
-    # Start Streamlit as a background subprocess (no visible console window)
-    creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+    # Start Streamlit as a background subprocess
+    kwargs = {}
+    if sys.platform == "win32":
+        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
     proc = subprocess.Popen(
         [
             python, "-m", "streamlit", "run", app_path,
@@ -91,7 +132,7 @@ def main():
         cwd=base_dir,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
-        creationflags=creation_flags,
+        **kwargs,
     )
 
     # Wait for the server to be ready
