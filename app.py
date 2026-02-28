@@ -988,9 +988,32 @@ def main():
     theme = load_theme()
     _inject_theme_css(theme)
 
+    # --- Discover plugins ---
+    from plugin_loader import discover_plugins, PluginContext
+    plugins = discover_plugins(ROOT / "plugins")
+    tab_plugins = [p for p in plugins if p.kind == "tab"]
+    sidebar_plugins = [p for p in plugins if p.kind == "sidebar"]
+
     # Load data
     df = load_journal_data(DEFAULT_OCR_DIR)
     ocr_output_dir, rag_db_path, filtered_df = render_sidebar(df)
+
+    # Render sidebar plugins
+    if sidebar_plugins:
+        st.sidebar.divider()
+        st.sidebar.header("Plugins")
+        ctx_sidebar = PluginContext(
+            df=filtered_df, rag_db_path=rag_db_path, root=ROOT,
+            session_log=session_log, section_header=section_header,
+            extract_common_words=extract_common_words,
+            get_sentiment=get_sentiment, get_rag=_get_rag,
+            load_theme=load_theme,
+        )
+        for plugin in sidebar_plugins:
+            try:
+                plugin.render(ctx_sidebar)
+            except Exception as e:
+                st.sidebar.error(f"Plugin '{plugin.name}' error: {e}")
 
     # Reload if user changed the path
     if ocr_output_dir != DEFAULT_OCR_DIR:
@@ -1012,6 +1035,15 @@ def main():
     # Compute sentiment (cached to avoid re-running on every interaction)
     filtered_df = _add_sentiment(filtered_df)
 
+    # Build plugin context
+    ctx = PluginContext(
+        df=filtered_df, rag_db_path=rag_db_path, root=ROOT,
+        session_log=session_log, section_header=section_header,
+        extract_common_words=extract_common_words,
+        get_sentiment=get_sentiment, get_rag=_get_rag,
+        load_theme=load_theme,
+    )
+
     # --- Overview metrics ---
     with st.expander("About these metrics", expanded=False):
         st.markdown(
@@ -1027,23 +1059,34 @@ def main():
     c4.metric("Days Covered", (filtered_df["date"].max() - filtered_df["date"].min()).days + 1)
     st.divider()
 
-    # --- Tabs ---
-    t_analytics, t_words, t_music, t_chat, t_entries, t_appearance = st.tabs([
-        "Analytics", "Words & Themes", "Music", "Chat", "Entries & Stats", "Appearance",
-    ])
+    # --- Tabs: core + plugins ---
+    core_names = [
+        "Analytics", "Words & Themes", "Music",
+        "Chat", "Entries & Stats", "Appearance",
+    ]
+    plugin_names = [p.name for p in tab_plugins]
+    all_tabs = st.tabs(core_names + plugin_names)
 
-    with t_analytics:
+    with all_tabs[0]:
         tab_analytics(filtered_df)
-    with t_words:
+    with all_tabs[1]:
         tab_words(filtered_df)
-    with t_music:
+    with all_tabs[2]:
         tab_music(filtered_df)
-    with t_chat:
+    with all_tabs[3]:
         tab_chat(rag_db_path)
-    with t_entries:
+    with all_tabs[4]:
         tab_entries(filtered_df)
-    with t_appearance:
+    with all_tabs[5]:
         tab_appearance()
+
+    for i, plugin in enumerate(tab_plugins):
+        with all_tabs[6 + i]:
+            try:
+                plugin.render(ctx)
+            except Exception as e:
+                st.error(f"Plugin '{plugin.name}' encountered an error:")
+                st.exception(e)
 
 
 if __name__ == "__main__":
