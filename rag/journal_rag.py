@@ -5,6 +5,7 @@ Semantic search and Q&A over journal entries using local embeddings and LLM
 """
 
 import json
+import shutil
 import argparse
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -254,16 +255,100 @@ class JournalRAG:
             dates.add(metadata['date'])
         return sorted(list(dates))
     
+    def backup(self, reason: str = "manual") -> Path:
+        """Create a timestamped backup of the vector database.
+
+        Args:
+            reason: Label for the backup (e.g., 'pre-delete', 'pre-clear')
+
+        Returns:
+            Path to the backup directory
+        """
+        backup_dir = self.db_path.parent / "vector_db_backups"
+        backup_dir.mkdir(exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = backup_dir / f"backup_{timestamp}_{reason}"
+
+        shutil.copytree(self.db_path, backup_path)
+        print(f"Backup created: {backup_path}")
+
+        # Keep only the 5 most recent backups
+        all_backups = sorted(
+            [p for p in backup_dir.iterdir() if p.is_dir()],
+            key=lambda p: p.stat().st_mtime,
+        )
+        while len(all_backups) > 5:
+            oldest = all_backups.pop(0)
+            shutil.rmtree(oldest)
+            print(f"  Removed old backup: {oldest.name}")
+
+        return backup_path
+
+    def list_backups(self) -> list:
+        """List available backups with metadata."""
+        backup_dir = self.db_path.parent / "vector_db_backups"
+        if not backup_dir.exists():
+            return []
+
+        backups = []
+        for p in sorted(backup_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+            if p.is_dir() and p.name.startswith("backup_"):
+                size_bytes = sum(f.stat().st_size for f in p.rglob("*") if f.is_file())
+                backups.append({
+                    "path": str(p),
+                    "name": p.name,
+                    "size_mb": round(size_bytes / (1024 * 1024), 1),
+                    "created": datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+                })
+        return backups
+
+    def restore(self, backup_path: str) -> bool:
+        """Restore the vector database from a backup.
+
+        Args:
+            backup_path: Path to the backup directory
+
+        Returns:
+            True if restored successfully
+        """
+        backup = Path(backup_path)
+        if not backup.is_dir():
+            print(f"Backup not found: {backup_path}")
+            return False
+
+        # Remove current DB
+        if self.db_path.exists():
+            shutil.rmtree(self.db_path)
+
+        # Copy backup to DB path
+        shutil.copytree(backup, self.db_path)
+
+        # Reinitialize client
+        self.client = chromadb.PersistentClient(
+            path=str(self.db_path),
+            settings=Settings(anonymized_telemetry=False)
+        )
+        self.collection = self.client.get_or_create_collection(
+            name="journal_entries",
+            metadata={"description": "Personal journal entries"}
+        )
+
+        print(f"Restored from backup: {backup_path}")
+        print(f"  Entries in database: {self.collection.count()}")
+        return True
+
     def delete_entry_by_date(self, date: str) -> int:
         """
         Delete all chunks from a specific date
-        
+
         Args:
             date: Date to delete (YYYY-MM-DD format)
-            
+
         Returns:
             Number of chunks deleted
         """
+        self.backup(reason="pre-delete")
         # Get all IDs for this date
         results = self.collection.get(
             where={"date": date}
@@ -284,13 +369,14 @@ class JournalRAG:
     def delete_entry_by_id(self, entry_id: str) -> bool:
         """
         Delete a specific entry by ID (deletes all its chunks)
-        
+
         Args:
             entry_id: Entry ID prefix (e.g., "2026-01-31")
-            
+
         Returns:
             True if deleted, False if not found
         """
+        self.backup(reason="pre-delete")
         # Get all chunks that start with this ID
         all_entries = self.collection.get()
         matching_ids = [id for id in all_entries['ids'] if id.startswith(entry_id)]
@@ -320,7 +406,9 @@ class JournalRAG:
         if total == 0:
             print("Database is already empty")
             return 0
-        
+
+        self.backup(reason="pre-clear")
+
         # Delete everything
         self.collection.delete(ids=all_entries['ids'])
         
@@ -639,7 +727,20 @@ def main():
     clear_parser = subparsers.add_parser('clear', help='Delete ALL entries (use with caution!)')
     clear_parser.add_argument('--db', default='./vector_db', help='Database path')
     clear_parser.add_argument('--yes', action='store_true', help='Skip confirmation')
-    
+
+    # Backup command
+    backup_parser = subparsers.add_parser('backup', help='Create a manual backup')
+    backup_parser.add_argument('--db', default='./vector_db', help='Database path')
+
+    # Restore command
+    restore_parser = subparsers.add_parser('restore', help='Restore from a backup')
+    restore_parser.add_argument('backup_path', help='Path to backup directory')
+    restore_parser.add_argument('--db', default='./vector_db', help='Database path')
+
+    # List backups command
+    backups_parser = subparsers.add_parser('backups', help='List available backups')
+    backups_parser.add_argument('--db', default='./vector_db', help='Database path')
+
     args = parser.parse_args()
     
     if not args.command:
@@ -702,7 +803,29 @@ def main():
                 return 0
         
         rag.clear_all_entries()
-    
+
+    elif args.command == 'backup':
+        backup_path = rag.backup(reason="manual")
+        print(f"\nBackup saved to: {backup_path}")
+
+    elif args.command == 'restore':
+        if rag.restore(args.backup_path):
+            print("\nDatabase restored successfully")
+        else:
+            print("\nRestore failed")
+            return 1
+
+    elif args.command == 'backups':
+        backups = rag.list_backups()
+        if not backups:
+            print("\nNo backups found")
+        else:
+            print(f"\nAvailable backups ({len(backups)}):\n")
+            for b in backups:
+                print(f"  {b['name']}  ({b['size_mb']} MB)  {b['created']}")
+                print(f"    {b['path']}")
+            print()
+
     return 0
 
 
