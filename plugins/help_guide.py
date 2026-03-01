@@ -143,18 +143,21 @@ to the emotional tone - not a clinical assessment.
         st.markdown("""
 **What the Music tab does**
 
-If you have Spotify listening data, Reflecting Pool can show what you
-were listening to around the time of each journal entry.  This can
-surface interesting connections between your mood and your music.
+Reflecting Pool scans your journal entries for mentions of songs and
+artists, then looks them up on Apple Music / iTunes to show album
+artwork, track details, and preview links.  It's a fun way to see
+what music was on your mind while you were writing.
 
-**How to add Spotify data**
+**How to get the best results**
 
-1. Request your data from Spotify (Account > Privacy > Download your data).
-2. Place the exported JSON files in the expected location.
-3. The **Music** tab will automatically pick them up.
+The detection works best when you're specific in your journal:
 
-If you don't use Spotify or haven't added the data yet, the Music tab
-will simply let you know.
+- **Use quotes** - *listened to "Everlong" by Foo Fighters*
+- **Mention artists** - *been listening to a lot of Radiohead lately*
+- **Use colons** - *Song: "Karma Police"*
+
+If the Music tab says no mentions were detected, try writing about
+songs or artists in your entries and they'll appear next time.
 """)
 
     # ------------------------------------------------------------------
