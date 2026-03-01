@@ -1028,8 +1028,29 @@ def main():
         2. Update the OCR Output Directory path in the sidebar
         3. Refresh this page
         """)
-        # Still show the chat tab even without entries
-        tab_chat(rag_db_path)
+        # Show Chat tab + any plugins that don't require data
+        no_df_plugins = [p for p in tab_plugins if not p.needs_df]
+        empty_tab_names = ["Chat"] + [p.name for p in no_df_plugins]
+        empty_tabs = st.tabs(empty_tab_names)
+
+        with empty_tabs[0]:
+            tab_chat(rag_db_path)
+
+        if no_df_plugins:
+            empty_ctx = PluginContext(
+                df=pd.DataFrame(), rag_db_path=rag_db_path, root=ROOT,
+                session_log=session_log, section_header=section_header,
+                extract_common_words=extract_common_words,
+                get_sentiment=get_sentiment, get_rag=_get_rag,
+                load_theme=load_theme,
+            )
+            for i, plugin in enumerate(no_df_plugins):
+                with empty_tabs[1 + i]:
+                    try:
+                        plugin.render(empty_ctx)
+                    except Exception as e:
+                        st.error(f"Plugin '{plugin.name}' encountered an error:")
+                        st.exception(e)
         return
 
     # Compute sentiment (cached to avoid re-running on every interaction)
