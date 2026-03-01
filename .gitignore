@@ -21,6 +21,7 @@ ocr/ocr_output/batch_metadata.json
 
 # RAG Data
 rag/vector_db/
+vector_db_backups/
 
 # Streamlit cache
 .streamlit/
