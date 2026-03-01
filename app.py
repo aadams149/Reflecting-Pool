@@ -242,6 +242,114 @@ def _get_rag(db_path: str):
 
 
 # ---------------------------------------------------------------------------
+# Sidebar – OCR Watcher
+# ---------------------------------------------------------------------------
+
+def _render_ocr_watcher(ocr_output_dir: str):
+    """Render the OCR Watcher controls in the sidebar.
+
+    Uses ``watchdog`` + ``JournalPhotoHandler`` from the OCR module to watch a
+    folder for new journal photos and process them automatically.  The Observer
+    thread is stored in ``st.session_state`` so it survives Streamlit reruns.
+    """
+
+    st.sidebar.header("OCR Watcher")
+
+    # Graceful fallback if watchdog is not installed
+    try:
+        from watchdog.observers import Observer  # noqa: F401
+    except ImportError:
+        st.sidebar.info(
+            "Install **watchdog** to enable the folder watcher:\n\n"
+            "`pip install watchdog`"
+        )
+        return
+
+    # Initialise session-state keys on first run
+    if "ocr_watcher_running" not in st.session_state:
+        st.session_state.ocr_watcher_running = False
+        st.session_state.ocr_watcher_observer = None
+        st.session_state.ocr_watcher_handler = None
+
+    # Default watch directory (sibling of OCR output)
+    default_watch = str(ROOT / "journal_photos")
+    watch_dir = st.sidebar.text_input(
+        "Watch Folder",
+        value=default_watch,
+        help="Folder to monitor for new journal photos (e.g. your iCloud Photos folder)",
+    )
+
+    # Staleness check – if the observer died unexpectedly, reset state
+    if st.session_state.ocr_watcher_running:
+        obs = st.session_state.ocr_watcher_observer
+        if obs is None or not obs.is_alive():
+            st.session_state.ocr_watcher_running = False
+            st.session_state.ocr_watcher_observer = None
+            st.session_state.ocr_watcher_handler = None
+            st.sidebar.warning("Watcher stopped unexpectedly.")
+
+    # Status indicator
+    if st.session_state.ocr_watcher_running:
+        st.sidebar.caption(":green[● Running]")
+    else:
+        st.sidebar.caption(":gray[● Stopped]")
+
+    # Start / Stop button
+    col1, col2 = st.sidebar.columns(2)
+    if st.session_state.ocr_watcher_running:
+        if col1.button("Stop Watcher", key="ocr_watch_stop"):
+            try:
+                obs = st.session_state.ocr_watcher_observer
+                if obs is not None:
+                    obs.stop()
+                    obs.join(timeout=5)
+            except Exception:
+                pass
+            st.session_state.ocr_watcher_running = False
+            st.session_state.ocr_watcher_observer = None
+            st.session_state.ocr_watcher_handler = None
+            session_log("OCR Watcher stopped")
+            st.rerun()
+    else:
+        if col1.button("Start Watcher", type="primary", key="ocr_watch_start"):
+            watch_path = Path(watch_dir)
+            if not watch_path.is_dir():
+                st.sidebar.error(f"Folder not found: {watch_dir}")
+            else:
+                try:
+                    sys.path.insert(0, str(ROOT / "ocr"))
+                    from journal_ocr import JournalOCRPipeline
+                    from auto_ocr_watcher import JournalPhotoHandler
+                    from watchdog.observers import Observer as Obs
+
+                    pipeline = JournalOCRPipeline(output_dir=ocr_output_dir)
+                    handler = JournalPhotoHandler(pipeline)
+                    observer = Obs()
+                    observer.schedule(handler, str(watch_path), recursive=False)
+                    observer.daemon = True
+                    observer.start()
+
+                    st.session_state.ocr_watcher_observer = observer
+                    st.session_state.ocr_watcher_handler = handler
+                    st.session_state.ocr_watcher_running = True
+                    session_log(f"OCR Watcher started – watching {watch_dir}")
+                    st.rerun()
+                except Exception as exc:
+                    st.sidebar.error(f"Failed to start watcher: {exc}")
+
+    # Processed file count
+    handler = st.session_state.ocr_watcher_handler
+    if handler is not None and hasattr(handler, "processed_files"):
+        n = len(handler.processed_files)
+        if n > 0:
+            st.sidebar.success(f"Processed **{n}** file{'s' if n != 1 else ''} this session")
+            if col2.button("Refresh Data", key="ocr_watch_refresh"):
+                st.cache_data.clear()
+                session_log("Data cache cleared after OCR Watcher processing")
+                st.rerun()
+
+
+# ---------------------------------------------------------------------------
 # Sidebar
 # ---------------------------------------------------------------------------
 
@@ -259,6 +367,9 @@ def render_sidebar(df: pd.DataFrame):
         value=DEFAULT_RAG_DB,
         help="Path to your RAG vector database",
     )
+
+    # --- OCR Watcher ---
+    _render_ocr_watcher(ocr_output_dir)
 
     # --- RAG sidebar search ---
     st.sidebar.header("Search")
