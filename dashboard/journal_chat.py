@@ -193,9 +193,9 @@ try:
     st.sidebar.metric("Total Entries", stats['total_entries'])
     st.sidebar.metric("Total Words", f"{stats['total_words']:,}")
     if stats['date_range']['first']:
-        st.sidebar.text(f"Date Range:")
+        st.sidebar.text("Date Range:")
         st.sidebar.text(f"{stats['date_range']['first']}")
-        st.sidebar.text(f"to")
+        st.sidebar.text("to")
         st.sidebar.text(f"{stats['date_range']['last']}")
 except Exception:
     pass

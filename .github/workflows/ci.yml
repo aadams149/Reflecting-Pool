@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install linters
+        run: pip install flake8 ruff
+
+      - name: Run flake8
+        run: |
+          flake8 . \
+            --max-line-length=120 \
+            --extend-ignore=E501,W503,E402,E722,W291,W293,W391,E303,E302,E305,E261,E262,E127,E128,E221,F401,F403 \
+            --exclude=".git,__pycache__,build,dist,.claude,*.egg-info,venv,.venv,dashboard/journal_dashboard - Copy.py" \
+            --count --show-source --statistics
+
+      - name: Run ruff
+        run: |
+          ruff check . \
+            --line-length=120 \
+            --extend-ignore=E501,E402,E722,F401,F403 \
+            --extend-exclude=".git,__pycache__,build,dist,.claude,venv,.venv,dashboard/journal_dashboard - Copy.py"
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Tesseract OCR
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run tests
+        run: |
+          if [ -d "tests" ]; then
+            python -m pytest tests/ -v --tb=short
+          else
+            echo "No tests directory found, skipping tests"
+          fi
