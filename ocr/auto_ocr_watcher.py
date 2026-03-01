@@ -104,12 +104,12 @@ def watch_folder(watch_dir: str, output_dir: str, engine: str = "tesseract"):
     if not watch_path.exists():
         raise FileNotFoundError(f"Watch directory does not exist: {watch_dir}")
     
-    print(f"Starting journal photo watcher...")
+    print("Starting journal photo watcher...")
     print(f"   Watching: {watch_path.absolute()}")
     print(f"   Output: {output_dir}")
     print(f"   OCR Engine: {engine}")
-    print(f"\nAdd new journal photos to the watch folder to process them automatically.")
-    print(f"   Press Ctrl+C to stop.\n")
+    print("\nAdd new journal photos to the watch folder to process them automatically.")
+    print("   Press Ctrl+C to stop.\n")
     
     # Initialize pipeline
     pipeline = JournalOCRPipeline(engine=engine, output_dir=output_dir)

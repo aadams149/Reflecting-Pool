@@ -474,7 +474,7 @@ def interactive_search(rag: JournalRAG, use_llm: bool = False, llm_model: str = 
     print("="*60)
     
     stats = rag.get_stats()
-    print(f"\nDatabase Stats:")
+    print("\nDatabase Stats:")
     print(f"  Entries: {stats['total_entries']}")
     print(f"  Date Range: {stats['date_range']['first']} to {stats['date_range']['last']}")
     print(f"  Total Words: {stats['total_words']:,}")
@@ -541,7 +541,7 @@ def interactive_search(rag: JournalRAG, use_llm: bool = False, llm_model: str = 
             
             elif command == 'list':
                 entries = rag.list_all_entries()
-                print(f"\nAll entries in database:\n")
+                print("\nAll entries in database:\n")
                 for entry in entries:
                     print(f"  {entry['date']} - {entry['chunks']} chunks, ~{entry['word_count']} words")
                 print()
@@ -565,7 +565,7 @@ def interactive_search(rag: JournalRAG, use_llm: bool = False, llm_model: str = 
             
             elif command == 'stats':
                 stats = rag.get_stats()
-                print(f"\nDatabase Statistics:")
+                print("\nDatabase Statistics:")
                 print(f"  Total Entries: {stats['total_entries']}")
                 print(f"  Total Chunks: {stats['total_chunks']}")
                 print(f"  Total Words: {stats['total_words']:,}")
@@ -680,7 +680,7 @@ def main():
     
     elif args.command == 'list':
         entries = rag.list_all_entries()
-        print(f"\nAll entries in database:\n")
+        print("\nAll entries in database:\n")
         for entry in entries:
             print(f"  {entry['date']} - {entry['chunks']} chunks, ~{entry['word_count']} words")
         print(f"\nTotal: {len(entries)} entries\n")

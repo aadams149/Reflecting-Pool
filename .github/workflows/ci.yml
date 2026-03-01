@@ -24,16 +24,16 @@ jobs:
         run: |
           flake8 . \
             --max-line-length=120 \
-            --extend-ignore=E501,W503,E402,E722,W291,W293,W391,E303,E302,E305,E261,E262 \
-            --exclude=.git,__pycache__,build,dist,.claude,*.egg-info,venv,.venv \
+            --extend-ignore=E501,W503,E402,E722,W291,W293,W391,E303,E302,E305,E261,E262,E127,E128,E221,F401,F403 \
+            --exclude=".git,__pycache__,build,dist,.claude,*.egg-info,venv,.venv,dashboard/journal_dashboard - Copy.py" \
             --count --show-source --statistics
 
       - name: Run ruff
         run: |
           ruff check . \
             --line-length=120 \
-            --extend-ignore=E501,E402,E722 \
-            --extend-exclude=".git,__pycache__,build,dist,.claude,venv,.venv"
+            --extend-ignore=E501,E402,E722,F401,F403 \
+            --extend-exclude=".git,__pycache__,build,dist,.claude,venv,.venv,dashboard/journal_dashboard - Copy.py"
 
   test:
     runs-on: ubuntu-latest

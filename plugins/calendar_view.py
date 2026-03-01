@@ -54,7 +54,6 @@ def render(ctx):
 
     theme = ctx.load_theme()
     link_color = theme.get("link_color", "#0066cc")
-    bg_color = theme.get("bg_color", "#ffffff")
     text_color = theme.get("text_color", "#111111")
 
     # Determine a subtle highlight for entry days
